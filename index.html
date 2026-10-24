@@ -120,7 +120,7 @@
         <div class="generator">
           <button id="generate" type="button">Generate puzzle</button>
           <label>Method <select id="generation-method"><option value="dual" selected>Dual-cell addition</option><option value="single">Single-cell addition</option></select></label>
-          <label><input id="no-adjacent-givens" type="checkbox" checked> Keep givens orthogonally separate</label>
+          <label>Any pair of givens in the same row or column must have at least <select id="minimum-given-gap"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select> blank cells between them.</label>
           <p id="generation-status" role="status" aria-live="polite"></p>
         </div>
         <div class="exports">
@@ -169,7 +169,7 @@
       <div class="simulation-controls">
         <label>Total trials<select id="simulation-trials"><option>1</option><option>10</option><option>100</option><option>1000</option><option>10000</option><option>100000</option><option>1000000</option></select></label>
         <label>Only display grids with at most X given cells<select id="simulation-max-givens"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option selected>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option></select></label>
-        <label><span><input id="simulation-no-adjacent" type="checkbox" checked> Keep givens orthogonally separate</span></label>
+        <label>Any pair of givens in the same row or column must have at least <select id="simulation-minimum-given-gap"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select> blank cells between them.</label>
         <button id="start-simulation" type="button">Start simulation</button>
       </div>
       <div class="simulation-results"><p id="simulation-status" role="status" aria-live="polite">Ready.</p><p id="simulation-average">Average time: —</p><h3>Givens distribution</h3><div id="simulation-histogram" class="histogram" aria-label="Givens distribution histogram"></div><div id="simulation-grids" class="simulation-grid" aria-live="polite"></div></div>
@@ -179,7 +179,7 @@
       <div class="simulation-controls">
         <label>Total trials<select id="difficulty-simulation-trials"><option>1</option><option>10</option><option>100</option><option>1000</option><option>10000</option><option>100000</option><option>1000000</option></select></label>
         <label>Display grids with a difficulty score exceeding<select id="difficulty-simulation-threshold"><option>0</option><option>500</option><option>700</option><option>800</option><option selected>1000</option><option>10000</option></select></label>
-        <label><span><input id="difficulty-simulation-no-adjacent" type="checkbox" checked> Keep givens orthogonally separate</span></label>
+        <label>Any pair of givens in the same row or column must have at least <select id="difficulty-simulation-minimum-given-gap"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select> blank cells between them.</label>
         <button id="start-difficulty-simulation" type="button">Start simulation</button><button id="halt-difficulty-simulation" type="button" hidden>Halt</button>
       </div>
       <div class="simulation-results"><p id="difficulty-simulation-status" role="status" aria-live="polite">Ready.</p><p id="difficulty-simulation-average">Average time: —</p><h3>Difficulty distribution</h3><div id="difficulty-simulation-histogram" class="histogram" aria-label="Difficulty distribution histogram"></div><div id="difficulty-simulation-grids" class="simulation-grid" aria-live="polite"></div></div>

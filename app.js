@@ -7,7 +7,7 @@ const status = document.querySelector('#status');
 const generateButton = document.querySelector('#generate');
 const generationStatus = document.querySelector('#generation-status');
 const generationMethod = document.querySelector('#generation-method');
-const noAdjacentGivens = document.querySelector('#no-adjacent-givens');
+const minimumGivenGap = document.querySelector('#minimum-given-gap');
 const copyStringButton = document.querySelector('#copy-string');
 const copyImageButton = document.querySelector('#copy-image');
 const copyCompletedStringButton = document.querySelector('#copy-completed-string');
@@ -97,7 +97,7 @@ generateButton.addEventListener('click', () => {
   }
   try {
     const source = `const betweenCandidates = ${betweenCandidates.toString()};\nconst createGenerator = ${createGenerator.toString()};\n` +
-      `try { let last = 0; const result = createGenerator(betweenCandidates).generate({ method: ${JSON.stringify(generationMethod.value)}, timeoutMs: Infinity, restartAfterMs: 1000, noOrthogonalAdjacent: ${noAdjacentGivens.checked}, onProgress: progress => { if (performance.now() - last > 200) { last = performance.now(); postMessage({ type: 'progress', ...progress }); } } }); postMessage({ type: 'done', result }); } catch (error) { postMessage({ type: 'error', message: error.message }); }`;
+      `try { let last = 0; const result = createGenerator(betweenCandidates).generate({ method: ${JSON.stringify(generationMethod.value)}, timeoutMs: Infinity, restartAfterMs: 1000, minBlankBetween: ${Number(minimumGivenGap.value)}, onProgress: progress => { if (performance.now() - last > 200) { last = performance.now(); postMessage({ type: 'progress', ...progress }); } } }); postMessage({ type: 'done', result }); } catch (error) { postMessage({ type: 'error', message: error.message }); }`;
     generationWorkerUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
     generationWorker = new Worker(generationWorkerUrl);
   } catch (error) {
@@ -358,7 +358,7 @@ const showGenerate = document.querySelector('#show-generate');
 const showSimulation = document.querySelector('#show-simulation');
 const simulationTrials = document.querySelector('#simulation-trials');
 const simulationMaxGivens = document.querySelector('#simulation-max-givens');
-const simulationNoAdjacent = document.querySelector('#simulation-no-adjacent');
+const simulationMinimumGivenGap = document.querySelector('#simulation-minimum-given-gap');
 const startSimulation = document.querySelector('#start-simulation');
 const simulationStatus = document.querySelector('#simulation-status');
 const simulationAverage = document.querySelector('#simulation-average');
@@ -392,11 +392,11 @@ function haltSimulationRun(message = 'Simulation halted.') {
 }
 startSimulation.addEventListener('click', () => {
   if (simulationWorker) { haltSimulationRun(); return; }
-  const total = Number(simulationTrials.value), maximum = Number(simulationMaxGivens.value), adjacent = simulationNoAdjacent.checked;
+  const total = Number(simulationTrials.value), maximum = Number(simulationMaxGivens.value), minimumGap = Number(simulationMinimumGivenGap.value);
   simulationGrids.replaceChildren();
   simulationDistribution = new Map(); renderHistogram();
   const source = `const betweenCandidates = ${betweenCandidates.toString()};\nconst createGenerator = ${createGenerator.toString()};\n` +
-    `const total=${total}, maximum=${maximum}, adjacent=${adjacent}; let completed=0, successful=0, elapsed=0; const engine=createGenerator(betweenCandidates); for(let trial=0;trial<total;trial++){try{const result=engine.generate({timeoutMs:10000,restartAfterMs:1000,noOrthogonalAdjacent:adjacent});successful++;elapsed+=result.elapsedMs;postMessage({type:'trial',completed:++completed,successful,elapsed,givenCount:result.givenCount,result:result.givenCount<=maximum?result:null});}catch(error){postMessage({type:'trial',completed:++completed,successful,elapsed,result:null});}}postMessage({type:'complete',completed,successful,elapsed});`;
+    `const total=${total}, maximum=${maximum}, minimumGap=${minimumGap}; let completed=0, successful=0, elapsed=0; const engine=createGenerator(betweenCandidates); for(let trial=0;trial<total;trial++){try{const result=engine.generate({timeoutMs:10000,restartAfterMs:1000,minBlankBetween:minimumGap});successful++;elapsed+=result.elapsedMs;postMessage({type:'trial',completed:++completed,successful,elapsed,givenCount:result.givenCount,result:result.givenCount<=maximum?result:null});}catch(error){postMessage({type:'trial',completed:++completed,successful,elapsed,result:null});}}postMessage({type:'complete',completed,successful,elapsed});`;
   simulationWorkerUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
   simulationWorker = new Worker(simulationWorkerUrl); startSimulation.textContent = 'Halt';
   simulationStatus.textContent = `Running 0 of ${total} trials…`; simulationAverage.textContent = 'Average time: —';
@@ -430,7 +430,7 @@ const difficultySimulationPage = document.querySelector('#simulation-difficulty-
 const showSimulationDifficulty = document.querySelector('#show-simulation-difficulty');
 const difficultySimulationTrials = document.querySelector('#difficulty-simulation-trials');
 const difficultySimulationThreshold = document.querySelector('#difficulty-simulation-threshold');
-const difficultySimulationNoAdjacent = document.querySelector('#difficulty-simulation-no-adjacent');
+const difficultySimulationMinimumGivenGap = document.querySelector('#difficulty-simulation-minimum-given-gap');
 const startDifficultySimulation = document.querySelector('#start-difficulty-simulation');
 const haltDifficultySimulation = document.querySelector('#halt-difficulty-simulation');
 const difficultySimulationStatus = document.querySelector('#difficulty-simulation-status');
@@ -471,9 +471,9 @@ function haltDifficultySimulationRun(message = 'Simulation halted.') {
 }
 haltDifficultySimulation.addEventListener('click', () => haltDifficultySimulationRun());
 startDifficultySimulation.addEventListener('click', () => {
-  const total = Number(difficultySimulationTrials.value), threshold = Number(difficultySimulationThreshold.value), adjacent = difficultySimulationNoAdjacent.checked;
+  const total = Number(difficultySimulationTrials.value), threshold = Number(difficultySimulationThreshold.value), minimumGap = Number(difficultySimulationMinimumGivenGap.value);
   difficultySimulationGrids.replaceChildren(); difficultyDistribution = new Map(); renderDifficultyHistogram();
-  const source = `const betweenCandidates = ${betweenCandidates.toString()};\nconst createGenerator = ${createGenerator.toString()};\nconst total=${total}, adjacent=${adjacent}; let completed=0; const engine=createGenerator(betweenCandidates); for(let trial=0;trial<total;trial++){try{const result=engine.generate({timeoutMs:10000,restartAfterMs:1000,noOrthogonalAdjacent:adjacent});postMessage({type:'trial',completed:++completed,result});}catch(error){postMessage({type:'trial',completed:++completed,result:null});}}postMessage({type:'complete',completed});`;
+  const source = `const betweenCandidates = ${betweenCandidates.toString()};\nconst createGenerator = ${createGenerator.toString()};\nconst total=${total}, minimumGap=${minimumGap}; let completed=0; const engine=createGenerator(betweenCandidates); for(let trial=0;trial<total;trial++){try{const result=engine.generate({timeoutMs:10000,restartAfterMs:1000,minBlankBetween:minimumGap});postMessage({type:'trial',completed:++completed,result});}catch(error){postMessage({type:'trial',completed:++completed,result:null});}}postMessage({type:'complete',completed});`;
   difficultySimulationWorkerUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
   difficultySimulationWorker = new Worker(difficultySimulationWorkerUrl); startDifficultySimulation.disabled = true; haltDifficultySimulation.hidden = false;
   difficultySimulationStatus.textContent = `Running 0 of ${total} trials…`; difficultySimulationAverage.textContent = 'Average time: —';

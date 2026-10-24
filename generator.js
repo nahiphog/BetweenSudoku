@@ -4,6 +4,17 @@
     const ALL = 0x1ff;
     const now = () => performance.now();
     const box = i => Math.floor(i / 27) * 3 + Math.floor(i % 9 / 3);
+    const minimumGap = options => options.minBlankBetween ?? (options.noOrthogonalAdjacent ? 1 : 0);
+    function violatesGivenGap(givens, cell, gap) {
+      if (!gap) return false;
+      const row = Math.floor(cell / 9), col = cell % 9;
+      for (let n = 0; n < 9; n++) {
+        const rowCell = row * 9 + n, colCell = n * 9 + col;
+        if (givens[rowCell] && Math.abs(n - col) - 1 < gap) return true;
+        if (givens[colCell] && Math.abs(n - row) - 1 < gap) return true;
+      }
+      return false;
+    }
     function countSolutions(givens, options = {}) {
       const deadline = options.deadline ?? Infinity;
       const board = givens.slice();
@@ -50,6 +61,7 @@
       const random = options.random || Math.random;
       const overallStarted = now(), deadline = overallStarted + (options.timeoutMs ?? Infinity);
       const restartAfterMs = options.restartAfterMs ?? 1000;
+      const gap = minimumGap(options);
       let attempts = 0, restarts = 0;
       while (now() < deadline) {
         const started = now();
@@ -59,9 +71,7 @@
         while (now() < deadline && now() - started < restartAfterMs) {
           const choices = [];
           for (let i = 0; i < 81; i++) {
-            const row = Math.floor(i / 9), col = i % 9;
-            const neighbours = [row > 0 ? i - 9 : -1, row < 8 ? i + 9 : -1, col > 0 ? i - 1 : -1, col < 8 ? i + 1 : -1];
-            const blocked = options.noOrthogonalAdjacent && neighbours.some(cell => cell >= 0 && givens[cell]);
+            const blocked = violatesGivenGap(givens, i, gap);
             if (!givens[i] && !blocked) for (let d = 1; d <= 9; d++) choices.push([i, d]);
           }
           shuffle(choices, random);
@@ -94,11 +104,8 @@
       const random = options.random || Math.random;
       const overallStarted = now(), deadline = overallStarted + (options.timeoutMs ?? Infinity);
       const restartAfterMs = options.restartAfterMs ?? 1000;
+      const gap = minimumGap(options);
       let attempts = 0, restarts = 0;
-      const neighbours = cell => {
-        const row = Math.floor(cell / 9), col = cell % 9;
-        return [row > 0 ? cell - 9 : -1, row < 8 ? cell + 9 : -1, col > 0 ? cell - 1 : -1, col < 8 ? cell + 1 : -1];
-      };
       while (now() < deadline) {
         const started = now(), attemptDeadline = Math.min(deadline, started + restartAfterMs);
         const givens = Array(81).fill(0);
@@ -109,7 +116,8 @@
             const mate = 80 - cell;
             if (givens[cell] || givens[mate]) continue;
             const pair = [cell, mate];
-            const blocked = options.noOrthogonalAdjacent && pair.some(candidate => neighbours(candidate).some(neighbour => neighbour >= 0 && givens[neighbour]));
+            const pairTooClose = cell !== mate && (Math.floor(cell / 9) === Math.floor(mate / 9) && Math.abs(cell % 9 - mate % 9) - 1 < gap || cell % 9 === mate % 9 && Math.abs(Math.floor(cell / 9) - Math.floor(mate / 9)) - 1 < gap);
+            const blocked = pairTooClose || pair.some(candidate => violatesGivenGap(givens, candidate, gap));
             if (!blocked) choices.push([cell, mate]);
           }
           if (!choices.length) {
