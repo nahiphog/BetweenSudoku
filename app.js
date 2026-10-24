@@ -5,7 +5,6 @@ const grid = document.querySelector('.grid');
 const mainLayout = document.querySelector('.layout');
 const status = document.querySelector('#status');
 const generateButton = document.querySelector('#generate');
-const cancelButton = document.querySelector('#cancel-generation');
 const generationStatus = document.querySelector('#generation-status');
 const generationMethod = document.querySelector('#generation-method');
 const noAdjacentGivens = document.querySelector('#no-adjacent-givens');
@@ -88,16 +87,17 @@ function stopGeneration() {
   generationWorker = null;
   generationWorkerUrl = null;
   generateButton.disabled = false;
-  cancelButton.hidden = true;
+  generateButton.textContent = 'Generate puzzle';
 }
-cancelButton.addEventListener('click', () => {
-  stopGeneration();
-  generationStatus.textContent = 'Generation cancelled.';
-});
 generateButton.addEventListener('click', () => {
+  if (generationWorker) {
+    stopGeneration();
+    generationStatus.textContent = 'Generation cancelled.';
+    return;
+  }
   try {
     const source = `const betweenCandidates = ${betweenCandidates.toString()};\nconst createGenerator = ${createGenerator.toString()};\n` +
-      `try { let last = 0; const result = createGenerator(betweenCandidates).generate({ method: ${JSON.stringify(generationMethod.value)}, timeoutMs: 120000, restartAfterMs: 1000, noOrthogonalAdjacent: ${noAdjacentGivens.checked}, onProgress: progress => { if (performance.now() - last > 200) { last = performance.now(); postMessage({ type: 'progress', ...progress }); } } }); postMessage({ type: 'done', result }); } catch (error) { postMessage({ type: 'error', message: error.message }); }`;
+      `try { let last = 0; const result = createGenerator(betweenCandidates).generate({ method: ${JSON.stringify(generationMethod.value)}, timeoutMs: Infinity, restartAfterMs: 1000, noOrthogonalAdjacent: ${noAdjacentGivens.checked}, onProgress: progress => { if (performance.now() - last > 200) { last = performance.now(); postMessage({ type: 'progress', ...progress }); } } }); postMessage({ type: 'done', result }); } catch (error) { postMessage({ type: 'error', message: error.message }); }`;
     generationWorkerUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
     generationWorker = new Worker(generationWorkerUrl);
   } catch (error) {
@@ -106,8 +106,7 @@ generateButton.addEventListener('click', () => {
     generationStatus.textContent = 'Unable to start the generator in this browser.';
     return;
   }
-  generateButton.disabled = true;
-  cancelButton.hidden = false;
+  generateButton.textContent = 'Cancel';
   generationStatus.textContent = `Generating puzzle with ${generationMethod.options[generationMethod.selectedIndex].text.toLowerCase()}…`;
   const worker = generationWorker;
   worker.onmessage = event => {
@@ -126,7 +125,7 @@ generateButton.addEventListener('click', () => {
       generationStatus.textContent = `Generated with ${message.result.givenCount} givens${rating} in ${(message.result.elapsedMs / 1000).toFixed(2)} seconds.`;
     } else if (message.type === 'error') {
       stopGeneration();
-      generationStatus.textContent = message.message === 'timeout' ? 'Generation timed out after 2 minutes. Please try again.' : 'Generation failed. Please try again.';
+      generationStatus.textContent = message.message === 'timeout' ? 'Generation stopped before a puzzle was found. Please try again.' : 'Generation failed. Please try again.';
     }
   };
   worker.onerror = () => {

@@ -48,7 +48,7 @@
     function generate(options = {}) {
       if (options.method === 'dual') return generateDual(options);
       const random = options.random || Math.random;
-      const overallStarted = now(), deadline = overallStarted + (options.timeoutMs ?? 120000);
+      const overallStarted = now(), deadline = overallStarted + (options.timeoutMs ?? Infinity);
       const restartAfterMs = options.restartAfterMs ?? 1000;
       let attempts = 0, restarts = 0;
       while (now() < deadline) {
@@ -92,7 +92,7 @@
     }
     function generateDual(options = {}) {
       const random = options.random || Math.random;
-      const overallStarted = now(), deadline = overallStarted + (options.timeoutMs ?? 120000);
+      const overallStarted = now(), deadline = overallStarted + (options.timeoutMs ?? Infinity);
       const restartAfterMs = options.restartAfterMs ?? 1000;
       let attempts = 0, restarts = 0;
       const neighbours = cell => {
