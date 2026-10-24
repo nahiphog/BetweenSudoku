@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Between Sudoku</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 32px 20px; background: #f5f4ef; color: #202923; font-family: system-ui, sans-serif; }
+    main { width: min(100%, 1050px); margin: auto; }
+    .site-header { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+    .site-header button { margin-top: 6px; padding: 8px 14px; border: 1px solid #315b3e; border-radius: 5px; background: white; color: #315b3e; font: inherit; cursor: pointer; }
+    h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: -.04em; }
+    .subtitle { color: #66736a; margin: 0 0 26px; }
+    .pages { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; }
+    .pages button { padding: 8px 14px; border: 1px solid #becbc1; border-radius: 5px; background: white; color: #315b3e; font: inherit; cursor: pointer; }
+    .pages button[aria-current="page"] { background: #315b3e; color: white; }
+    .simulation { max-width: 760px; padding: 22px; border: 1px solid #dce3dc; border-radius: 8px; background: white; }
+    .custom-picker { display: grid; grid-template-columns: repeat(9, 1fr); width: min(100%, 450px); aspect-ratio: 1; border: 2px solid #315b3e; background: white; }
+    .custom-picker button { min-width: 0; border: 0; border-right: 1px solid #dce3dc; border-bottom: 1px solid #dce3dc; background: white; cursor: pointer; }
+    .custom-picker button:nth-child(3n) { border-right: 2px solid #315b3e; } .custom-picker button:nth-child(9n) { border-right: 0; }
+    .custom-picker button:nth-child(n+19):nth-child(-n+27), .custom-picker button:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #315b3e; } .custom-picker button:nth-child(n+73) { border-bottom: 0; }
+    .custom-picker button[aria-pressed="true"] { background: #cdebd4; box-shadow: inset 0 0 0 2px #4f8060; }
+    .custom-results { margin-top: 20px; }
+    .simulation h2 { margin-top: 0; }
+    .simulation-controls { display: grid; gap: 16px; max-width: 400px; }
+    .simulation-controls label { display: grid; gap: 5px; color: #405047; }
+    .simulation-controls select, .simulation-controls button { min-height: 38px; font: inherit; }
+    .simulation-results { margin-top: 22px; }
+    .simulation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .simulation-item { padding: 12px; border: 1px solid #dce3dc; border-radius: 6px; background: #fafcf9; }
+    .simulation-item p { margin: 0 0 8px; font-size: .85rem; color: #405047; }
+    .simulation-item button { margin: 10px 0; padding: 7px 10px; border: 1px solid #becbc1; border-radius: 4px; background: white; color: #315b3e; font: inherit; cursor: pointer; }
+    .simulation-item code { display: block; overflow-wrap: anywhere; font-size: .72rem; color: #315b3e; }
+    .verify { max-width: 760px; padding: 22px; border: 1px solid #dce3dc; border-radius: 8px; background: white; }
+    .verify-entry { display: grid; gap: 12px; max-width: 720px; }
+    .verify-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .verify-entry textarea { width: 100%; min-height: 110px; font-family: ui-monospace, monospace; font-size: 1rem; }
+    .verify-grid { display: grid; grid-template-columns: repeat(9, 1fr); width: min(100%, 450px); aspect-ratio: 1; border: 2px solid #315b3e; }
+    .verify-grid input { min-width: 0; border: 0; border-right: 1px solid #dce3dc; border-bottom: 1px solid #dce3dc; text-align: center; font: 600 1.2rem system-ui; }
+    .verify-grid input:nth-child(3n) { border-right: 2px solid #315b3e; } .verify-grid input:nth-child(9n) { border-right: 0; }
+    .verify-grid input:nth-child(n+19):nth-child(-n+27), .verify-grid input:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #315b3e; } .verify-grid input:nth-child(n+73) { border-bottom: 0; }
+    .verify-solutions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 16px; }
+    .verify-solutions .mini-grid > span.contrast { background: #ffd9ad; color: #803d00; }
+    .verify-walkthrough { margin-top: 20px; }
+    .verify-solutions .mini-grid { width: min(100%, 450px); margin: 12px 0; }
+    .verify-walkthrough .mini-grid, #custom-walk-grid .mini-grid { width: min(100%, 563px); margin: 12px 0; }
+    .verify-walkthrough .mini-grid > span, #custom-walk-grid .mini-grid > span { font-size: 1.125rem; }
+    .mini-grid > span.step-primary { background: #dfeeff; } .mini-grid > span.step-secondary { background: #fff0cd; } .mini-grid > span.step-fin { background: #f0e4ff; }
+    .mini-grid > span.step-elimination { background: #ffe3e0; } .mini-grid > span.step-placement { background: #ddf1df; }
+    .simulation-grid code { display: block; overflow-wrap: anywhere; padding: 10px; border: 1px solid #dce3dc; border-radius: 5px; color: #315b3e; font-size: .75rem; }
+    .mini-grid { display: grid; grid-template-columns: repeat(9, 1fr); aspect-ratio: 1; border: 2px solid #315b3e; background: white; }
+    .mini-grid > span { display: grid; place-items: center; min-width: 0; border-right: 1px solid #dce3dc; border-bottom: 1px solid #dce3dc; color: #263b30; font-size: .9rem; font-weight: 650; }
+    .mini-grid > span:nth-child(3n) { border-right: 2px solid #315b3e; } .mini-grid > span:nth-child(9n) { border-right: 0; }
+    .mini-grid > span:nth-child(n+19):nth-child(-n+27), .mini-grid > span:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #315b3e; } .mini-grid > span:nth-child(n+73) { border-bottom: 0; }
+    .mini-grid > span.completed-only { color: #1d5eac; }
+    .walk-marks { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); width: 100%; height: 100%; align-items: center; justify-items: center; font-size: .56em; color: #1d5eac; line-height: 1; }
+    .marks .removed-mark, .walk-marks .removed-mark { color: #a43232; text-decoration: line-through; text-decoration-thickness: 2px; }
+    .histogram { display: flex; align-items: end; gap: 8px; min-height: 180px; margin-top: 12px; padding: 12px 4px 0; border-bottom: 2px solid #315b3e; overflow-x: auto; }
+    .histogram-bar { display: grid; grid-template-rows: auto 130px auto; justify-items: center; min-width: 42px; gap: 4px; font-size: .78rem; color: #405047; }
+    .histogram-bar span { align-self: end; width: 28px; min-height: 2px; background: #4f8060; border-radius: 3px 3px 0 0; }
+    .layout { max-width: 540px; }
+    .layout.main-walkthrough { max-width: 675px; }
+    .layout.main-walkthrough .given { font-size: clamp(1.5rem, 5.625vw, 2.625rem); }
+    .layout.main-walkthrough .marks { font-size: clamp(.65rem, 1.875vw, 1rem); }
+    .grid { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); aspect-ratio: 1; border: 3px solid #263b30; background: white; }
+    .cell { position: relative; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 0; border-right: 1px solid #c7d0ca; border-bottom: 1px solid #c7d0ca; background: white; color: #202923; font: inherit; cursor: pointer; }
+    .cell:nth-child(3n) { border-right: 2px solid #263b30; }
+    .cell:nth-child(9n) { border-right: 0; }
+    .cell:nth-child(n+19):nth-child(-n+27), .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #263b30; }
+    .cell:nth-child(n+73) { border-bottom: 0; }
+    .cell.selected { background: #e2eee5; box-shadow: inset 0 0 0 2px #4f8060; }
+    .cell.impossible { background: #fff0e8; }
+    .cell:focus-visible, .key:focus-visible { outline: 3px solid #bd7e36; outline-offset: -3px; z-index: 1; }
+    .given { font-size: clamp(1.2rem, 4.5vw, 2.1rem); font-weight: 650; }
+    .marks { position: absolute; inset: 5%; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); align-items: center; justify-items: center; font-size: clamp(.52rem, 1.5vw, .8rem); color: #1d5eac; line-height: 1; }
+    .keys { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .key { flex: 1 1 35px; min-height: 42px; border: 1px solid #becbc1; border-radius: 5px; background: white; color: #263b30; font: inherit; font-weight: 600; cursor: pointer; }
+    .key:hover { background: #e2eee5; }
+    .generator { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 14px; }
+    .generator label { display: inline-flex; align-items: center; gap: 6px; color: #405047; font-size: .9rem; }
+    .generator button { padding: 10px 16px; border: 1px solid #315b3e; border-radius: 5px; background: #315b3e; color: white; font: inherit; font-weight: 600; cursor: pointer; }
+    .generator button:disabled { opacity: .55; cursor: default; }
+    .generator .secondary { background: white; color: #315b3e; }
+    .exports { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+    .exports button { padding: 8px 11px; border: 1px solid #becbc1; border-radius: 5px; background: white; color: #315b3e; font: inherit; cursor: pointer; }
+    #generation-status { margin: 0; color: #52675a; font-size: .9rem; }
+    .help { color: #66736a; font-size: .9rem; line-height: 1.5; }
+    dialog { max-width: min(92vw, 580px); border: 0; border-radius: 8px; box-shadow: 0 16px 50px #0004; color: #202923; line-height: 1.6; }
+    dialog::backdrop { background: #14201888; }
+    dialog button { padding: 8px 14px; border: 1px solid #315b3e; border-radius: 5px; background: #315b3e; color: white; font: inherit; cursor: pointer; }
+    #status { min-height: 1.5em; color: #9a4b2f; font-size: .9rem; }
+    .walkthrough { margin-top: 20px; padding: 16px; border: 1px solid #dce3dc; border-radius: 8px; background: white; }
+    .walkthrough[hidden] { display: none; }
+    .walkthrough h2 { margin: 0 0 6px; font-size: 1.1rem; }
+    .walk-controls { display: flex; align-items: center; gap: 6px; }
+    .walk-controls button { min-width: 34px; min-height: 32px; border: 1px solid #becbc1; border-radius: 4px; background: white; color: #315b3e; font: inherit; cursor: pointer; }
+    .walk-controls input { flex: 1; }
+    #walk-description { min-height: 3em; margin: 8px 0; color: #405047; }
+    #walk-slider { width: 100%; }
+    .technique-table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: .9rem; }
+    .technique-table th, .technique-table td { padding: 7px 8px; border-bottom: 1px solid #dce3dc; text-align: left; }
+    .technique-table th { color: #52675a; font-weight: 650; }
+    .cell.step-primary { background: #dfeeff; } .cell.step-secondary { background: #fff0cd; } .cell.step-fin { background: #f0e4ff; }
+    .cell.step-elimination { background: #ffe3e0; } .cell.step-placement, .cell.solution { background: #ddf1df; }
+    .cell.solution .given { color: #1d5eac; }
+    @media (max-width: 760px) { .layout { grid-template-columns: 1fr; gap: 24px; } .board { max-width: 540px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="site-header"><h1>Between Sudoku</h1><button id="about" type="button">About</button></header>
+    <nav class="pages" aria-label="Pages"><button id="show-generate" type="button" aria-current="page">Generate</button><button id="show-custom-build" type="button">Custom Build</button><button id="show-simulation" type="button">Simulation</button><button id="show-simulation-difficulty" type="button">Simulation difficulty</button><button id="show-verify" type="button">Verify</button><button id="show-techniques" type="button">Techniques</button></nav>
+    <section id="generate-page">
+    <p class="subtitle">Set your givens and explore the spaces between.</p>
+    <div class="layout">
+      <section class="board" aria-label="Sudoku board">
+        <div class="generator">
+          <button id="generate" type="button">Generate puzzle</button>
+          <button id="cancel-generation" class="secondary" type="button" hidden>Cancel</button>
+          <label><input id="no-adjacent-givens" type="checkbox" checked> Keep givens orthogonally separate</label>
+          <p id="generation-status" role="status" aria-live="polite"></p>
+        </div>
+        <div class="exports">
+          <button id="copy-string" type="button">Copy 81-character string</button>
+          <button id="copy-image" type="button">Copy grid image</button>
+          <button id="copy-completed-string" type="button" disabled>Copy completed string</button>
+          <button id="copy-completed-image" type="button" disabled>Copy completed image</button>
+        </div>
+        <div class="grid" role="grid" aria-label="Sudoku grid"></div>
+        <div class="keys" aria-label="Enter a given"></div>
+        <p class="help">Select a cell, then enter a digit using the buttons or your keyboard. Use Backspace, Delete or Clear to remove a given. Arrow keys move between cells.</p>
+        <div id="status" role="status" aria-live="polite"></div>
+        <section id="walkthrough" class="walkthrough" hidden>
+          <h2>Solution walkthrough</h2>
+          <p id="difficulty"></p>
+          <label for="walk-slider">Step <span id="walk-number"></span></label>
+          <div class="walk-controls"><button id="walk-first" type="button" aria-label="Go to step 0">&lt;&lt;</button><button id="walk-prev" type="button" aria-label="Go to previous step">&lt;</button><input id="walk-slider" type="range" min="0" value="0"><button id="walk-next" type="button" aria-label="Go to next step">&gt;</button><button id="walk-last" type="button" aria-label="Go to last step">&gt;&gt;</button></div>
+          <p id="walk-description"></p>
+          <table class="technique-table">
+            <thead><tr><th scope="col">Technique</th><th scope="col">Steps</th></tr></thead>
+            <tbody id="technique-summary"></tbody>
+          </table>
+        </section>
+      </section>
+    </div>
+    </section>
+    <section id="custom-build-page" class="simulation" hidden>
+      <h2>Custom Build</h2>
+      <p class="help">Select the cells that must be givens in the final puzzle. Mark at least five cells, then build a uniquely solvable Between Sudoku.</p>
+      <div id="custom-picker" class="custom-picker" role="grid" aria-label="Required given cells"></div>
+      <p id="custom-build-selection" class="help">0 cells selected</p>
+      <div class="generator"><button id="custom-build-now" type="button">Build now</button><button id="cancel-custom-build" class="secondary" type="button" hidden>Cancel</button></div>
+      <p id="custom-build-status" role="status" aria-live="polite"></p>
+      <div id="custom-build-results" class="custom-results" hidden>
+        <div class="verify-solutions"><div><h3>Final grid</h3><div id="custom-final-grid"></div></div><div><h3>Completed grid</h3><div id="custom-completed-grid"></div></div></div>
+        <section id="custom-walkthrough" class="walkthrough" hidden><h2>Solution walkthrough</h2><p id="custom-difficulty"></p><label for="custom-walk-slider">Step <span id="custom-walk-number"></span></label><div class="walk-controls"><button id="custom-walk-first" type="button" aria-label="Go to step 0">&lt;&lt;</button><button id="custom-walk-prev" type="button" aria-label="Go to previous step">&lt;</button><input id="custom-walk-slider" type="range" min="0" value="0"><button id="custom-walk-next" type="button" aria-label="Go to next step">&gt;</button><button id="custom-walk-last" type="button" aria-label="Go to last step">&gt;&gt;</button></div><p id="custom-walk-description"></p><div id="custom-walk-grid"></div><table class="technique-table"><thead><tr><th scope="col">Technique</th><th scope="col">Steps</th></tr></thead><tbody id="custom-technique-summary"></tbody></table></section>
+      </div>
+    </section>
+    <section id="verify-page" class="verify" hidden>
+      <h2>Verify</h2>
+      <div class="verify-entry"><label>81-character string<textarea id="verify-string" placeholder="Use digits, 0, or . for blanks"></textarea></label><div class="verify-actions"><button id="paste-verify" type="button">Paste clipboard</button><button id="reset-verify" type="button">Clear input</button><button id="verify-puzzle" type="button">Verify puzzle</button></div><p id="verify-given-count" class="help">Givens: 0</p><p>Or enter digits directly:</p><div id="verify-grid" class="verify-grid" aria-label="Verification grid"></div><div class="exports"><button id="copy-verify-string" type="button" disabled>Copy puzzle string</button><button id="copy-verify-image" type="button" disabled>Copy puzzle image</button><button id="copy-verify-completed-string" type="button" disabled>Copy completed string</button><button id="copy-verify-completed-image" type="button" disabled>Copy completed image</button></div><p id="verify-status" role="status" aria-live="polite"></p></div>
+      <div id="verify-solutions" class="verify-solutions"></div>
+      <section id="verify-walkthrough" class="walkthrough verify-walkthrough" hidden><h2>Solution walkthrough</h2><p id="verify-difficulty"></p><label for="verify-walk-slider">Step <span id="verify-walk-number"></span></label><div class="walk-controls"><button id="verify-walk-first" type="button" aria-label="Go to step 0">&lt;&lt;</button><button id="verify-walk-prev" type="button" aria-label="Go to previous step">&lt;</button><input id="verify-walk-slider" type="range" min="0" value="0"><button id="verify-walk-next" type="button" aria-label="Go to next step">&gt;</button><button id="verify-walk-last" type="button" aria-label="Go to last step">&gt;&gt;</button></div><p id="verify-walk-description"></p><div id="verify-walk-grid"></div><table class="technique-table"><thead><tr><th scope="col">Technique</th><th scope="col">Steps</th></tr></thead><tbody id="verify-technique-summary"></tbody></table></section>
+    </section>
+    <section id="simulation-page" class="simulation" hidden>
+      <h2>Simulation</h2>
+      <div class="simulation-controls">
+        <label>Total trials<select id="simulation-trials"><option>1</option><option>10</option><option>100</option><option>1000</option><option>10000</option><option>100000</option><option>1000000</option></select></label>
+        <label>Only display grids with at most X given cells<select id="simulation-max-givens"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option selected>16</option><option>17</option><option>18</option><option>19</option></select></label>
+        <label><span><input id="simulation-no-adjacent" type="checkbox" checked> Keep givens orthogonally separate</span></label>
+        <button id="start-simulation" type="button">Start simulation</button>
+      </div>
+      <div class="simulation-results"><p id="simulation-status" role="status" aria-live="polite">Ready.</p><p id="simulation-average">Average time: —</p><h3>Givens distribution</h3><div id="simulation-histogram" class="histogram" aria-label="Givens distribution histogram"></div><div id="simulation-grids" class="simulation-grid" aria-live="polite"></div></div>
+    </section>
+    <section id="simulation-difficulty-page" class="simulation" hidden>
+      <h2>Simulation difficulty</h2>
+      <div class="simulation-controls">
+        <label>Total trials<select id="difficulty-simulation-trials"><option>1</option><option>10</option><option>100</option><option>1000</option><option>10000</option><option>100000</option><option>1000000</option></select></label>
+        <label>Display grids with a difficulty score exceeding<select id="difficulty-simulation-threshold"><option>0</option><option>500</option><option>700</option><option>800</option><option>1000</option><option>10000</option></select></label>
+        <label><span><input id="difficulty-simulation-no-adjacent" type="checkbox" checked> Keep givens orthogonally separate</span></label>
+        <button id="start-difficulty-simulation" type="button">Start simulation</button><button id="halt-difficulty-simulation" type="button" hidden>Halt</button>
+      </div>
+      <div class="simulation-results"><p id="difficulty-simulation-status" role="status" aria-live="polite">Ready.</p><p id="difficulty-simulation-average">Average time: —</p><h3>Difficulty distribution</h3><div id="difficulty-simulation-histogram" class="histogram" aria-label="Difficulty distribution histogram"></div><div id="difficulty-simulation-grids" class="simulation-grid" aria-live="polite"></div></div>
+    </section>
+    <section id="techniques-page" class="simulation" hidden>
+      <h2>Active techniques</h2>
+      <p class="help">These are the enabled imported Sudoku techniques used by the walkthrough before brute force. Brute Force is only used when none of the other active techniques applies, and each placement adds 10,000 to the difficulty score.</p>
+      <table class="technique-table">
+        <thead><tr><th scope="col">Technique</th><th scope="col">Level</th><th scope="col">Category</th><th scope="col">Score</th></tr></thead>
+        <tbody id="technique-catalog"></tbody>
+      </table>
+    </section>
+    <dialog id="about-dialog"><h2>About Between Sudoku</h2><p>Normal sudoku rules apply. Additionally, for any pair of givens in the same row or column with only blank cells between them, the blank cells must contain digits between the values of the given digits.</p><p>For example, if there is a single cell between the given digits 1 and 5 in the same column, that cell can only contain a number from {2, 3, 4}.</p><button id="close-about" type="button">Close</button></dialog>
+  </main>
+  <script src="between.js"></script>
+  <script src="generator.js"></script>
+  <script src="techniques.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
