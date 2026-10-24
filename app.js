@@ -117,7 +117,8 @@ generateButton.addEventListener('click', () => {
       copyCompletedStringButton.disabled = false; copyCompletedImageButton.disabled = false;
       try { setWalkthrough(BetweenSudokuTechniques.walkthrough(message.result.givens, message.result.solution)); }
       catch { walkthrough = null; mainLayout.classList.remove('main-walkthrough'); walkthroughPanel.hidden = true; render(); }
-      generationStatus.textContent = `Generated with ${message.result.givenCount} givens in ${(message.result.elapsedMs / 1000).toFixed(2)} seconds.`;
+      const rating = walkthrough ? ` · ${walkthrough.level} · score ${walkthrough.score}` : '';
+      generationStatus.textContent = `Generated with ${message.result.givenCount} givens${rating} in ${(message.result.elapsedMs / 1000).toFixed(2)} seconds.`;
     } else if (message.type === 'error') {
       stopGeneration();
       generationStatus.textContent = message.message === 'timeout' ? 'Generation timed out after 2 minutes. Please try again.' : 'Generation failed. Please try again.';
