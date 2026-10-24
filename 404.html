@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Opening Between Sudoku…</title>
+<script>
+  const parts = location.pathname.split('/').filter(Boolean);
+  const base = parts.length ? `/${parts.shift()}/` : '/';
+  const route = parts.join('/');
+  location.replace(`${base}?route=${encodeURIComponent(route)}${location.hash}`);
+</script>

@@ -540,7 +540,8 @@ function clearVerifyResults() { verifySolutions.replaceChildren(); verifyWalkthr
 const pageRoutes = { generate: 'Generate', 'custom-build': 'custom_build', simulation: 'simulation', 'simulation-difficulty': 'simulation_difficulty', verify: 'verify', techniques: 'techniques' };
 const routeRoot = location.protocol === 'file:' ? '' : (location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/\/[^/]*$/, '/'));
 function pageFromLocation() {
-  const route = location.protocol === 'file:' ? location.hash.replace(/^#\/?/, '') : location.pathname.slice(routeRoot.length).replace(/^\//, '');
+  const fallbackRoute = new URLSearchParams(location.search).get('route');
+  const route = location.protocol === 'file:' ? location.hash.replace(/^#\/?/, '') : (fallbackRoute || location.pathname.slice(routeRoot.length).replace(/^\//, ''));
   return Object.entries(pageRoutes).find(([, value]) => value === route)?.[0] || 'generate';
 }
 function updatePageUrl(page) {
@@ -576,7 +577,9 @@ function renderTechniqueCatalog() {
   }
 }
 renderTechniqueCatalog();
-showPage(pageFromLocation(), false);
+const initialPage = pageFromLocation();
+showPage(initialPage, false);
+if (location.protocol !== 'file:' && new URLSearchParams(location.search).has('route')) history.replaceState({ page: initialPage }, '', `${routeRoot}${pageRoutes[initialPage]}`);
 window.addEventListener('popstate', () => showPage(pageFromLocation(), false));
 window.addEventListener('hashchange', () => showPage(pageFromLocation(), false));
 loadVerifyString?.addEventListener('click', () => {
