@@ -3,11 +3,11 @@ const givens = Array(81).fill(0);
 let selected = 0;
 const grid = document.querySelector('.grid');
 const mainLayout = document.querySelector('.layout');
-const keys = document.querySelector('.keys');
 const status = document.querySelector('#status');
 const generateButton = document.querySelector('#generate');
 const cancelButton = document.querySelector('#cancel-generation');
 const generationStatus = document.querySelector('#generation-status');
+const generationMethod = document.querySelector('#generation-method');
 const noAdjacentGivens = document.querySelector('#no-adjacent-givens');
 const copyStringButton = document.querySelector('#copy-string');
 const copyImageButton = document.querySelector('#copy-image');
@@ -28,7 +28,7 @@ const aboutDialog = document.querySelector('#about-dialog');
 const closeAbout = document.querySelector('#close-about');
 const techniqueRatings = new Map(BetweenSudokuTechniques.techniqueCatalog().map(technique => [technique.key, technique.score]));
 techniqueRatings.set('BETWEEN_NOTATION', 1);
-function renderTechniqueSummary(target, steps) {
+function renderTechniqueSummary(target, steps, goToStep) {
   const groups = new Map();
   steps.forEach((step, index) => {
     if (!groups.has(step.tech)) groups.set(step.tech, []);
@@ -40,7 +40,12 @@ function renderTechniqueSummary(target, steps) {
     const technique = document.createElement('td');
     const text = key.replaceAll('_', ' ').toLowerCase();
     technique.textContent = text[0].toUpperCase() + text.slice(1);
-    const stepsCell = document.createElement('td'); stepsCell.textContent = locations.join(', ');
+    const stepsCell = document.createElement('td');
+    locations.forEach((stepNumber, index) => {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'technique-step-link'; button.textContent = stepNumber; button.setAttribute('aria-label', `Go to step ${stepNumber}`);
+      button.addEventListener('click', () => goToStep(stepNumber - 1)); stepsCell.appendChild(button);
+      if (index < locations.length - 1) stepsCell.append(' ');
+    });
     row.append(technique, stepsCell); target.appendChild(row);
   });
 }
@@ -92,7 +97,7 @@ cancelButton.addEventListener('click', () => {
 generateButton.addEventListener('click', () => {
   try {
     const source = `const betweenCandidates = ${betweenCandidates.toString()};\nconst createGenerator = ${createGenerator.toString()};\n` +
-      `try { let last = 0; const result = createGenerator(betweenCandidates).generate({ timeoutMs: 120000, restartAfterMs: 1000, noOrthogonalAdjacent: ${noAdjacentGivens.checked}, onProgress: progress => { if (performance.now() - last > 200) { last = performance.now(); postMessage({ type: 'progress', ...progress }); } } }); postMessage({ type: 'done', result }); } catch (error) { postMessage({ type: 'error', message: error.message }); }`;
+      `try { let last = 0; const result = createGenerator(betweenCandidates).generate({ method: ${JSON.stringify(generationMethod.value)}, timeoutMs: 120000, restartAfterMs: 1000, noOrthogonalAdjacent: ${noAdjacentGivens.checked}, onProgress: progress => { if (performance.now() - last > 200) { last = performance.now(); postMessage({ type: 'progress', ...progress }); } } }); postMessage({ type: 'done', result }); } catch (error) { postMessage({ type: 'error', message: error.message }); }`;
     generationWorkerUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
     generationWorker = new Worker(generationWorkerUrl);
   } catch (error) {
@@ -103,7 +108,7 @@ generateButton.addEventListener('click', () => {
   }
   generateButton.disabled = true;
   cancelButton.hidden = false;
-  generationStatus.textContent = 'Generating puzzle…';
+  generationStatus.textContent = `Generating puzzle with ${generationMethod.options[generationMethod.selectedIndex].text.toLowerCase()}…`;
   const worker = generationWorker;
   worker.onmessage = event => {
     if (worker !== generationWorker) return;
@@ -178,7 +183,7 @@ function setWalkthrough(data) {
   walkthrough = data; walkIndex = 0; mainLayout.classList.add('main-walkthrough'); walkthroughPanel.hidden = false;
   walkSlider.max = data.steps.length - 1; walkSlider.value = 0;
   difficulty.textContent = `Difficulty: ${data.level} · score ${data.score}${data.solvable ? '' : ' · includes a final search placement'}`;
-  renderTechniqueSummary(techniqueSummary, data.steps);
+  renderTechniqueSummary(techniqueSummary, data.steps, index => { walkSlider.value = index; updateWalkthrough(); });
   updateWalkthrough();
 }
 function updateWalkthrough() {
@@ -187,15 +192,6 @@ function updateWalkthrough() {
   walkDescription.textContent = step.description; render();
 }
 bindWalkControls(walkSlider, updateWalkthrough, walkFirst, walkPrev, walkNext, walkLast);
-for (let value = 1; value <= 9; value++) {
-  const button = document.createElement('button');
-  button.type = 'button'; button.className = 'key'; button.textContent = value;
-  button.setAttribute('aria-label', `Enter ${value}`);
-  button.addEventListener('click', () => setGiven(value)); keys.appendChild(button);
-}
-const clear = document.createElement('button');
-clear.type = 'button'; clear.className = 'key'; clear.textContent = 'Clear';
-clear.addEventListener('click', () => setGiven(0)); keys.appendChild(clear);
 function render() {
   const values = displayValues();
   const between = betweenCandidates(givens);
@@ -333,7 +329,7 @@ function showCustomWalkthrough(givensForWalkthrough, solution) {
   customWalkGivens = givensForWalkthrough.slice(); customWalkthrough = BetweenSudokuTechniques.walkthrough(givensForWalkthrough, solution); customWalkIndex = 0;
   customWalkthroughPanel.hidden = false; customWalkSlider.max = customWalkthrough.steps.length - 1; customWalkSlider.value = 0;
   customDifficulty.textContent = `Difficulty: ${customWalkthrough.level} · score ${customWalkthrough.score}${customWalkthrough.solvable ? '' : ' · includes a final search placement'}`;
-  renderTechniqueSummary(customTechniqueSummary, customWalkthrough.steps); updateCustomWalkthrough();
+  renderTechniqueSummary(customTechniqueSummary, customWalkthrough.steps, index => { customWalkSlider.value = index; updateCustomWalkthrough(); }); updateCustomWalkthrough();
 }
 bindWalkControls(customWalkSlider, updateCustomWalkthrough, customWalkFirst, customWalkPrev, customWalkNext, customWalkLast);
 cancelCustomBuild.addEventListener('click', () => stopCustomBuild('Custom build cancelled.'));
@@ -631,7 +627,7 @@ function setVerifyWalkthrough(givensForWalkthrough, solution) {
   verifyWalkGivens = givensForWalkthrough.slice(); verifyWalkthrough = BetweenSudokuTechniques.walkthrough(givensForWalkthrough, solution); verifyWalkIndex = 0;
   verifyWalkthroughPanel.hidden = false; verifyWalkSlider.max = verifyWalkthrough.steps.length - 1; verifyWalkSlider.value = 0;
   verifyDifficulty.textContent = `Difficulty: ${verifyWalkthrough.level} · score ${verifyWalkthrough.score}${verifyWalkthrough.solvable ? '' : ' · includes a final search placement'}`;
-  renderTechniqueSummary(verifyTechniqueSummary, verifyWalkthrough.steps);
+  renderTechniqueSummary(verifyTechniqueSummary, verifyWalkthrough.steps, index => { verifyWalkSlider.value = index; updateVerifyWalkthrough(); });
   updateVerifyWalkthrough();
 }
 bindWalkControls(verifyWalkSlider, updateVerifyWalkthrough, verifyWalkFirst, verifyWalkPrev, verifyWalkNext, verifyWalkLast);

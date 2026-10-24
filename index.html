@@ -101,6 +101,8 @@
     .technique-table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: .9rem; }
     .technique-table th, .technique-table td { padding: 7px 8px; border-bottom: 1px solid #dce3dc; text-align: left; }
     .technique-table th { color: #52675a; font-weight: 650; }
+    .technique-step-link { margin: 1px 3px 1px 0; padding: 1px 4px; border: 0; border-radius: 3px; background: #e2eee5; color: #315b3e; font: inherit; cursor: pointer; }
+    .technique-step-link:hover, .technique-step-link:focus-visible { background: #cdebd4; }
     .cell.step-primary { background: #dfeeff; } .cell.step-secondary { background: #fff0cd; } .cell.step-fin { background: #f0e4ff; }
     .cell.step-elimination { background: #ffe3e0; } .cell.step-placement, .cell.solution { background: #ddf1df; }
     .cell.solution .given { color: #1d5eac; }
@@ -118,6 +120,7 @@
         <div class="generator">
           <button id="generate" type="button">Generate puzzle</button>
           <button id="cancel-generation" class="secondary" type="button" hidden>Cancel</button>
+          <label>Method <select id="generation-method"><option value="dual" selected>Dual-cell addition</option><option value="single">Single-cell addition</option></select></label>
           <label><input id="no-adjacent-givens" type="checkbox" checked> Keep givens orthogonally separate</label>
           <p id="generation-status" role="status" aria-live="polite"></p>
         </div>
@@ -128,8 +131,7 @@
           <button id="copy-completed-image" type="button" disabled>Copy completed image</button>
         </div>
         <div class="grid" role="grid" aria-label="Sudoku grid"></div>
-        <div class="keys" aria-label="Enter a given"></div>
-        <p class="help">Select a cell, then enter a digit using the buttons or your keyboard. Use Backspace, Delete or Clear to remove a given. Arrow keys move between cells.</p>
+        <p class="help">Select a cell, then enter a digit using your keyboard. Use Backspace, Delete, or 0 to remove a given. Arrow keys move between cells.</p>
         <div id="status" role="status" aria-live="polite"></div>
         <section id="walkthrough" class="walkthrough" hidden>
           <h2>Solution walkthrough</h2>
@@ -167,7 +169,7 @@
       <h2>Simulation</h2>
       <div class="simulation-controls">
         <label>Total trials<select id="simulation-trials"><option>1</option><option>10</option><option>100</option><option>1000</option><option>10000</option><option>100000</option><option>1000000</option></select></label>
-        <label>Only display grids with at most X given cells<select id="simulation-max-givens"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option selected>16</option><option>17</option><option>18</option><option>19</option></select></label>
+        <label>Only display grids with at most X given cells<select id="simulation-max-givens"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option selected>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option></select></label>
         <label><span><input id="simulation-no-adjacent" type="checkbox" checked> Keep givens orthogonally separate</span></label>
         <button id="start-simulation" type="button">Start simulation</button>
       </div>
@@ -177,7 +179,7 @@
       <h2>Simulation difficulty</h2>
       <div class="simulation-controls">
         <label>Total trials<select id="difficulty-simulation-trials"><option>1</option><option>10</option><option>100</option><option>1000</option><option>10000</option><option>100000</option><option>1000000</option></select></label>
-        <label>Display grids with a difficulty score exceeding<select id="difficulty-simulation-threshold"><option>0</option><option>500</option><option>700</option><option>800</option><option>1000</option><option>10000</option></select></label>
+        <label>Display grids with a difficulty score exceeding<select id="difficulty-simulation-threshold"><option>0</option><option>500</option><option>700</option><option>800</option><option selected>1000</option><option>10000</option></select></label>
         <label><span><input id="difficulty-simulation-no-adjacent" type="checkbox" checked> Keep givens orthogonally separate</span></label>
         <button id="start-difficulty-simulation" type="button">Start simulation</button><button id="halt-difficulty-simulation" type="button" hidden>Halt</button>
       </div>

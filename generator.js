@@ -46,6 +46,7 @@
       return array;
     }
     function generate(options = {}) {
+      if (options.method === 'dual') return generateDual(options);
       const random = options.random || Math.random;
       const overallStarted = now(), deadline = overallStarted + (options.timeoutMs ?? 120000);
       const restartAfterMs = options.restartAfterMs ?? 1000;
@@ -89,6 +90,75 @@
       }
       throw new Error('timeout');
     }
+    function generateDual(options = {}) {
+      const random = options.random || Math.random;
+      const overallStarted = now(), deadline = overallStarted + (options.timeoutMs ?? 120000);
+      const restartAfterMs = options.restartAfterMs ?? 1000;
+      let attempts = 0, restarts = 0;
+      const neighbours = cell => {
+        const row = Math.floor(cell / 9), col = cell % 9;
+        return [row > 0 ? cell - 9 : -1, row < 8 ? cell + 9 : -1, col > 0 ? cell - 1 : -1, col < 8 ? cell + 1 : -1];
+      };
+      while (now() < deadline) {
+        const started = now(), attemptDeadline = Math.min(deadline, started + restartAfterMs);
+        const givens = Array(81).fill(0);
+        let givenCount = 0, timedOut = false;
+        while (!timedOut && now() < attemptDeadline) {
+          const choices = [];
+          for (let cell = 0; cell <= 40; cell++) {
+            const mate = 80 - cell;
+            if (givens[cell] || givens[mate]) continue;
+            const pair = [cell, mate];
+            const blocked = options.noOrthogonalAdjacent && pair.some(candidate => neighbours(candidate).some(neighbour => neighbour >= 0 && givens[neighbour]));
+            if (!blocked) choices.push([cell, mate]);
+          }
+          if (!choices.length) {
+            try {
+              const result = countSolutions(givens, { deadline: attemptDeadline });
+              if (result.count === 1) return { givens: givens.slice(), solution: result.solution, givenCount, elapsedMs: now() - overallStarted, attempts, restarts };
+            } catch (error) { if (error.message !== 'timeout') throw error; }
+            break;
+          }
+          shuffle(choices, random);
+          let accepted = false;
+          for (const [cell, mate] of choices) {
+            const firstDigits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], random);
+            for (const first of firstDigits) {
+              givens[cell] = first; attempts++;
+              let firstResult;
+              try { firstResult = countSolutions(givens, { deadline: attemptDeadline }); }
+              catch (error) { if (error.message === 'timeout') { timedOut = true; break; } throw error; }
+              if (!firstResult.count) { givens[cell] = 0; continue; }
+              if (mate === cell) {
+                accepted = true; givenCount++;
+                if (firstResult.count === 1) return { givens: givens.slice(), solution: firstResult.solution, givenCount, elapsedMs: now() - overallStarted, attempts, restarts };
+                break;
+              }
+              const secondDigits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], random);
+              for (const second of secondDigits) {
+                givens[mate] = second; attempts++;
+                let result;
+                try { result = countSolutions(givens, { deadline: attemptDeadline }); }
+                catch (error) { if (error.message === 'timeout') { timedOut = true; break; } throw error; }
+                if (result.count) {
+                  accepted = true; givenCount += 2;
+                  if (result.count === 1) return { givens: givens.slice(), solution: result.solution, givenCount, elapsedMs: now() - overallStarted, attempts, restarts };
+                  break;
+                }
+                givens[mate] = 0;
+              }
+              if (accepted || timedOut) break;
+              givens[cell] = 0;
+            }
+            if (accepted || timedOut) break;
+          }
+          if (!accepted || timedOut) break;
+          if (options.onProgress) options.onProgress({ givenCount, attempts, restarts });
+        }
+        restarts++;
+      }
+      throw new Error('timeout');
+    }
     function buildCustom(requiredCells, options = {}) {
       const random = options.random || Math.random;
       const started = now(), deadline = started + (options.timeoutMs ?? 120000);
@@ -124,7 +194,7 @@
       }
       throw new Error('timeout');
     }
-    return { countSolutions, generate, buildCustom };
+    return { countSolutions, generate, generateDual, buildCustom };
   }
   root.createGenerator = createGenerator;
   if (typeof module !== 'undefined') module.exports = { createGenerator };
