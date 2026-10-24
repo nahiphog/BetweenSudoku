@@ -1,0 +1,12 @@
+{
+  "name": "between-sudoku",
+  "private": true,
+  "scripts": {
+    "build": "esbuild walkthrough.ts --bundle --format=iife --global-name=BetweenSudokuTechniques --outfile=techniques.js --target=es2022",
+    "test": "node tests/generator.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3"
+  }
+}
