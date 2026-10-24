@@ -373,7 +373,7 @@ function renderHistogram() {
     const bar = document.createElement('div'); bar.className = 'histogram-bar';
     const total = document.createElement('strong'); total.textContent = trials;
     const column = document.createElement('span'); column.style.height = `${Math.max(2, Math.round(trials / largest * 130))}px`;
-    const label = document.createElement('small'); label.textContent = `${givensCount} givens`;
+    const label = document.createElement('small'); label.textContent = givensCount;
     bar.append(total, column, label); simulationHistogram.appendChild(bar);
   }
 }
