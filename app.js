@@ -1,4 +1,22 @@
 'use strict';
+const accessForm = document.querySelector('#access-form');
+const accessCode = document.querySelector('#access-code');
+const accessError = document.querySelector('#access-error');
+function unlockSite() {
+  document.documentElement.classList.remove('access-locked');
+  accessCode.value = '';
+}
+accessForm.addEventListener('submit', event => {
+  event.preventDefault();
+  if (accessCode.value === 'MANIAC') {
+    try { sessionStorage.setItem('between-sudoku-access', 'granted'); } catch { /* The gate remains unlocked for this page. */ }
+    unlockSite();
+  } else {
+    accessError.textContent = 'Incorrect access code.';
+    accessCode.select();
+  }
+});
+if (document.documentElement.classList.contains('access-locked')) accessCode.focus();
 const givens = Array(81).fill(0);
 let selected = 0;
 const grid = document.querySelector('.grid');

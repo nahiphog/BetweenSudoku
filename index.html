@@ -106,10 +106,33 @@
     .cell.step-primary { background: #dfeeff; } .cell.step-secondary { background: #fff0cd; } .cell.step-fin { background: #f0e4ff; }
     .cell.step-elimination { background: #ffe3e0; } .cell.step-placement, .cell.solution { background: #ddf1df; }
     .cell.solution .given { color: #1d5eac; }
+    html.access-locked main { visibility: hidden; }
+    .access-gate { position: fixed; z-index: 1000; inset: 0; display: none; place-items: center; padding: 24px; background: #f4f8f4; }
+    html.access-locked .access-gate { display: grid; }
+    .access-card { width: min(100%, 360px); padding: 28px; border: 1px solid #c9d9cc; border-radius: 12px; background: #fff; box-shadow: 0 14px 40px #17361b22; }
+    .access-card h1 { margin-top: 0; }
+    .access-card label, .access-card input { display: block; width: 100%; box-sizing: border-box; }
+    .access-card input { margin: 8px 0 14px; padding: 9px 10px; border: 1px solid #9cb4a0; border-radius: 5px; font: inherit; }
+    .access-error { min-height: 1.3em; margin: 10px 0 0; color: #a43232; }
     @media (max-width: 760px) { .layout { grid-template-columns: 1fr; gap: 24px; } .board { max-width: 540px; } }
   </style>
+  <script>
+    try {
+      if (sessionStorage.getItem('between-sudoku-access') !== 'granted') document.documentElement.classList.add('access-locked');
+    } catch { document.documentElement.classList.add('access-locked'); }
+  </script>
 </head>
 <body>
+  <section id="access-gate" class="access-gate" role="dialog" aria-modal="true" aria-labelledby="access-title">
+    <form id="access-form" class="access-card">
+      <h1 id="access-title">Between Sudoku</h1>
+      <p>Enter the access code to continue.</p>
+      <label for="access-code">Access code</label>
+      <input id="access-code" type="password" autocomplete="current-password" required autofocus>
+      <button type="submit">Unlock</button>
+      <p id="access-error" class="access-error" role="alert" aria-live="polite"></p>
+    </form>
+  </section>
   <main>
     <header class="site-header"><h1>Between Sudoku</h1><button id="about" type="button">About</button></header>
     <nav class="pages" aria-label="Pages"><button id="show-generate" type="button" aria-current="page">Generate</button><button id="show-custom-build" type="button">Custom Build</button><button id="show-simulation" type="button">Simulation</button><button id="show-simulation-difficulty" type="button">Simulation difficulty</button><button id="show-verify" type="button">Verify</button><button id="show-techniques" type="button">Techniques</button></nav>
